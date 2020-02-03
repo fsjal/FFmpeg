@@ -1,5 +1,6 @@
 package com.ffmpeg
 
+import com.ffmpeg.views.MainApp
 import javafx.application.Application
 
 class Main {

@@ -1,6 +1,17 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'net.sf.proguard:proguard-gradle:6.2.2'
+        classpath 'edu.sc.seis.gradle:launch4j:2.4.6'
+    }
+}
+
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.61'
     id 'org.openjfx.javafxplugin' version '0.0.8'
+    id 'edu.sc.seis.launch4j' version '2.4.6'
 }
 
 group 'com.penta'
@@ -10,11 +21,16 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    fatJar
+}
+
 dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-    implementation 'com.jfoenix:jfoenix:9.0.8'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-javafx:1.3.2'
+    fatJar 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2'
+    fatJar 'org.jetbrains.kotlinx:kotlinx-coroutines-javafx:1.3.2'
 }
 
 compileKotlin {
@@ -28,4 +44,43 @@ javafx {
     version = '13'
     modules = [ 'javafx.controls', 'javafx.fxml' ]
     //configuration = "compileOnly"
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.ffmpeg.Main'
+    }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'com.ffmpeg.Main'
+    }
+    baseName = "FFmpeg"
+    from { configurations.fatJar.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+}
+
+
+import proguard.gradle.ProGuardTask
+
+task obfuscate(type: ProGuardTask) {
+    configuration 'proguard.pro'
+
+    injars jar.archivePath
+    outjars "${jar.archivePath.parent}/out.jar"
+}
+
+import edu.sc.seis.launch4j.tasks.Launch4jLibraryTask
+task exe(type: Launch4jLibraryTask) {
+    jar = "${projectDir}/build/libs/FFmpeg-0.1.jar"
+    outfile = "FFmpeg.exe"
+    mainClassName = 'com.penta.Main'
+//    jvmOptions = ['--module-path "C:/Program Files/Java/javafx/lib"',
+//                  '--add-modules javafx.controls,javafx.fxml']
+
+    //icon = "${projectDir}/icons/myAppFast.ico"
+    //fileDescription = 'The lightning fast implementation'
 }
